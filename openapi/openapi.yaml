@@ -1,16 +1,26 @@
 openapi: 3.0.3
 info:
   title: Dernier Métro API
+  description: API pour obtenir les horaires de métro parisien
   version: 1.0.0
 servers:
-  - url: http://localhost:5000
+  - url: http://localhost:5001
+    description: Serveur de développement
+tags:
+  - name: Health
+    description: Santé du service
+  - name: Metro
+    description: Horaires du métro
 paths:
   /health:
     get:
       summary: Health check
+      description: Vérifier l'état de santé de l'API
+      tags:
+        - Health
       responses:
         "200":
-          description: OK
+          description: Service opérationnel
           content:
             application/json:
               schema:
@@ -18,22 +28,61 @@ paths:
                 properties:
                   status:
                     type: string
+                    example: "ok"
                   service:
                     type: string
+                    example: "dernier-metro-api"
+              example:
+                status: "ok"
+                service: "dernier-metro-api"
+
+  /db-health:
+    get:
+      summary: Database health check
+      description: Vérifier la connexion à la base de données
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Base de données accessible
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  database:
+                    type: string
+                    example: "connected"
+              example:
+                status: "ok"
+                database: "connected"
+        "500":
+          description: Erreur de connexion à la base
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /next-metro:
     get:
       summary: Prochain passage de métro
+      description: Obtenir l'heure d'arrivée estimée du prochain métro
+      tags:
+        - Metro
       parameters:
-        - in: query
-          name: station
+        - name: station
+          in: query
+          required: true
+          description: Nom de la station de métro
           schema:
             type: string
-          required: true
-          description: Nom de la station
+          example: "République"
       responses:
         "200":
-          description: Heure d'arrivée estimée
+          description: Heure d'arrivée estimée calculée
           content:
             application/json:
               schema:
@@ -41,45 +90,60 @@ paths:
                 properties:
                   station:
                     type: string
+                    example: "République"
                   line:
                     type: string
+                    example: "M1"
                   headwayMin:
                     type: integer
+                    example: 3
                   nextArrival:
                     type: string
-                    example: "12:34"
+                    format: time
+                    example: "14:35"
+              example:
+                station: "République"
+                line: "M1"
+                headwayMin: 3
+                nextArrival: "14:35"
         "400":
-          description: Paramètre manquant
+          description: Paramètre station manquant
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "missing station"
         "404":
-          description: Ressource non trouvée
+          description: Station non trouvée
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
         "500":
-          description: Erreur interne
+          description: Erreur interne du serveur
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
 
   /last-metro:
     get:
       summary: Dernier passage de métro
+      description: Obtenir l'heure du dernier métro parti d'une station
+      tags:
+        - Metro
       parameters:
-        - in: query
-          name: station
+        - name: station
+          in: query
+          required: true
+          description: Nom de la station de métro (insensible à la casse)
           schema:
             type: string
-          required: true
-          description: Nom de la station
+          example: "Chatelet"
       responses:
         "200":
-          description: Heure du dernier métro
+          description: Dernier métro trouvé pour cette station
           content:
             application/json:
               schema:
@@ -87,36 +151,59 @@ paths:
                 properties:
                   station:
                     type: string
+                    example: "Chatelet"
                   lastMetro:
                     type: string
+                    format: time
                     example: "00:45"
                   line:
                     type: string
+                    example: "M1"
                   tz:
                     type: string
+                    example: "Europe/Paris"
+              example:
+                station: "Chatelet"
+                lastMetro: "00:45"
+                line: "M1"
+                tz: "Europe/Paris"
         "400":
-          description: Paramètre manquant
+          description: Paramètre station manquant
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "missing station"
         "404":
-          description: Ressource non trouvée
+          description: Station inconnue
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "unknown station"
         "500":
-          description: Erreur interne
+          description: Erreur de base de données ou configuration manquante
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/Error"
+              example:
+                error: "DB error"
 
 components:
   schemas:
-    ErrorResponse:
+    Error:
       type: object
+      required:
+        - error
       properties:
         error:
           type: string
+          description: Message d'erreur descriptif
+          example: "missing station"
+        details:
+          type: string
+          description: Détails techniques optionnels (erreurs 500)
+          example: "Connection timeout"
