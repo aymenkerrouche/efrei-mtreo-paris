@@ -24,6 +24,8 @@ services:
     image: swaggerapi/swagger-ui:latest
     environment:
       - SWAGGER_JSON=/openapi/openapi.yaml
+      - BASE_URL=/
+      - SWAGGER_JSON_URL=http://localhost:8080/openapi/openapi.yaml
     volumes:
       - ./openapi:/usr/share/nginx/html/openapi:ro
     ports:
