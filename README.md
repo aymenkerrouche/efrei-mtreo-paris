@@ -43,6 +43,6 @@ npm run test:coverage
 
 # 05 openapi-docs (mise à jour) + 06 — unit-tests (Jest)
 
-![app](assets/photo4.png)
+![app](assets/swagger.png)
 
-![app](assets/photo3.png)
+![app](assets/testUnitaire.png)
